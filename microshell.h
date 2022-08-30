@@ -1,11 +1,6 @@
 #ifndef MICROSHELL_H
 # define MICROSHELL_H
 
-//# define STDIN 0
-//# define STDOUT 1
-//# define STDERR 2
-# include <unistd.h>
-
 # define READ 0
 # define WRITE 1
 
@@ -21,7 +16,6 @@ typedef struct s_shell
 	char	**argv;
 	char	**envp;
 	t_node	*cmd_list;
-	int		pipe_fd[2];	
 	int		cp_stdout;
 	int		start;
 }	t_shell;

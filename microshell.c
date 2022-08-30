@@ -55,81 +55,6 @@ char	*ft_strdup(char *str)
 	return (dup);
 }
 
-void	get_cmd_list(t_shell *shell)
-{
-	int	i = shell->start;
-	int j = 0;
-	t_node	*tmp;
-	char	**argv;
-	int		cmd_size = 0;
-
-	argv = shell->argv;
-	while (1)
-	{
-		tmp = malloc(sizeof(t_node));
-		if (!tmp)
-			exit_fatal();
-		tmp->cmd = NULL;
-		tmp->next = NULL;
-		tmp->type = -1;
-		cmd_size = 0;
-		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
-		{	
-			++i;
-			++cmd_size;
-		}
-		if (cmd_size)
-		{
-			tmp->cmd = malloc((cmd_size + 1) * sizeof(char *));
-			j = 0;
-			while (j < cmd_size)
-			{
-				tmp->cmd[j] = ft_strdup(argv[j + shell->start]);
-				++j;
-			}
-			tmp->cmd[j] = NULL;
-			list_add_back(&shell->cmd_list, tmp);
-		}
-		if (argv[i])
-		{
-			if (strcmp(argv[i], "|") == 0)
-				tmp->type = T_PIPE;
-			/*else if (strcmp(argv[i], ";") == 0)
-				tmp->type = T_SEMI;
-			else
-				tmp->type = T_CMD;*/
-			++i;
-		}
-		else
-			tmp->type = T_END;
-		if (tmp->type != T_PIPE)
-			break ;
-		shell->start = i;
-	}
-	shell->start = i;
-}
-
-void	print(t_node *list)
-{
-	t_node *cur;
-	int		i = 0;
-
-	cur = list;
-	while (cur)
-	{
-		i = 0;
-		while (cur->cmd[i])
-		{	
-			printf("%s ", cur->cmd[i]);
-			++i;
-		}
-		if (cur->type == T_PIPE)
-			printf("| ");
-		cur = cur->next;
-	}
-	printf("\n");
-}
-
 void	exit_cd_arg(void)
 {
 	write(STDERR_FILENO, ERROR_CD_ARG, ft_strlen(ERROR_CD_ARG));
@@ -148,80 +73,6 @@ void	exit_exec(char *executable_that_failed)
 	write(STDERR_FILENO, executable_that_failed, ft_strlen(executable_that_failed));
 	write(STDERR_FILENO, "\n", 1);
 	exit(EXIT_FAILURE);
-}
-
-void	execute_cd(char **arg)
-{
-	int i = 0;
-
-	while (arg[i])
-		++i;
-	if (i != 2)
-	{
-		exit_cd_arg();
-		return ;
-	}
-	if (chdir(arg[1]) == -1)
-		exit_cd_path(arg[1]);
-}
-
-void	execute_other(t_shell *shell)
-{
-	char	**cmd;
-	pid_t	pid;
-	int		status;
-	t_node	*cur;
-	int		fd[2];
-
-	cur = shell->cmd_list;
-	while (cur)
-	{
-		if (cur->type == T_PIPE)
-		{
-			if (pipe(fd) == -1)
-				exit_fatal();
-		}
-		cmd = cur->cmd;
-		pid = fork();
-		if (pid > 0)
-		{
-			//if (cur->type != T_SEMI && cur->type != T_END)
-			if (cur->type == T_PIPE)
-			{
-				if (close(fd[WRITE]) == -1)
-					exit_fatal();
-				if (dup2(fd[READ], STDIN_FILENO) == -1)
-					exit_fatal();
-				if (close(fd[READ]) == -1)
-					exit_fatal();	
-			}
-			if (waitpid(pid, &status, 0) == -1)
-				exit_fatal();
-		}
-		else if (pid == 0)
-		{
-			//if (cur->type != T_SEMI && cur->type != T_END)
-			if (cur->type == T_PIPE)
-			{
-				if (close(fd[READ]) == -1)
-					exit_fatal();
-				if (dup2(fd[WRITE], STDOUT_FILENO) == -1)
-					exit_fatal();
-				if (close(fd[WRITE]) == -1)
-					exit_fatal();
-			}
-			else
-			{
-				if (dup2(shell->cp_stdout, STDOUT_FILENO) == -1)
-					exit_fatal();
-			}
-			if (execve(cmd[0], cmd, shell->envp) == -1)
-				exit_exec(cmd[0]);
-		}
-		else
-			exit_fatal();
-		cur = cur->next;
-	}
 }
 
 void	free_array(char **array)
@@ -251,41 +102,156 @@ void	free_all_node(t_node *list)
 	}
 }
 
+void	get_cmd_list(t_shell *shell)
+{
+	int	i = shell->start;
+	int j = 0;
+	t_node	*new;
+	char	**argv;
+	int		cmd_count = 0;
+
+	argv = shell->argv;
+	while (1)
+	{
+		new = malloc(sizeof(t_node));
+		if (!new)
+			exit_fatal();
+		new->cmd = NULL;
+		new->next = NULL;
+		new->type = -1;
+		cmd_count = 0;
+		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
+		{	
+			++i;
+			++cmd_count;
+		}
+		new->cmd = malloc((cmd_count + 1) * sizeof(char *));
+		if (!new->cmd)
+			exit_fatal();
+		j = 0;
+		while (j < cmd_count)
+		{
+			new->cmd[j] = ft_strdup(argv[j + shell->start]);
+			++j;
+		}
+		new->cmd[j] = NULL;
+		if (argv[i])
+		{
+			if (strcmp(argv[i], "|") == 0)
+				new->type = T_PIPE;
+			/*else if (strcmp(argv[i], ";") == 0)
+				new->type = T_SEMI;
+			else
+				new->type = T_CMD;*/
+			++i;
+		}
+		else
+			new->type = T_END;
+		list_add_back(&shell->cmd_list, new);
+		if (new->type != T_PIPE)
+			break ;
+		shell->start = i;
+	}
+	shell->start = i;
+}
+
+void	execute_cd(char **arg)
+{
+	int i = 0;
+
+	while (arg[i])
+		++i;
+	if (i != 2)
+	{
+		exit_cd_arg();
+		return ;
+	}
+	if (chdir(arg[1]) == -1)
+		exit_cd_path(arg[1]);
+}
+
+void	execute_other(t_shell *shell)
+{
+	pid_t	pid;
+	int		status;
+	int		fd[2];
+	t_node	*cur;
+
+	cur = shell->cmd_list;
+	while (cur)
+	{
+		if (cur->type == T_PIPE)
+		{
+			if (pipe(fd) == -1)
+				exit_fatal();
+		}
+		pid = fork();
+		if (pid > 0)
+		{
+			if (cur->type == T_PIPE)
+			{
+				if (close(fd[WRITE]) == -1)
+					exit_fatal();
+				if (dup2(fd[READ], STDIN_FILENO) == -1)
+					exit_fatal();
+				if (close(fd[READ]) == -1)
+					exit_fatal();	
+			}
+			if (waitpid(pid, &status, 0) == -1)
+				exit_fatal();
+		}
+		else if (pid == 0)
+		{
+			if (cur->type == T_PIPE)
+			{
+				if (close(fd[READ]) == -1)
+					exit_fatal();
+				if (dup2(fd[WRITE], STDOUT_FILENO) == -1)
+					exit_fatal();
+				if (close(fd[WRITE]) == -1)
+					exit_fatal();
+			}
+			else
+			{
+				if (dup2(shell->cp_stdout, STDOUT_FILENO) == -1)
+					exit_fatal();
+			}
+			if (execve(cur->cmd[0], cur->cmd, shell->envp) == -1)
+				exit_exec(cur->cmd[0]);
+		}
+		else
+			exit_fatal();
+		cur = cur->next;
+	}
+}
+
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
-	//pid_t	pid;
-	//int		status;
 	
 	shell.argv = argv;
 	shell.envp = envp;
 	shell.start = 1;
 	shell.cmd_list = NULL;
 	shell.cp_stdout = dup(STDOUT_FILENO);
-	if (argc < 2)
+	if (shell.cp_stdout == -1)
 		exit_fatal();
+	if (argc < 2)
+		return (0);
 	while(argv[shell.start])
 	{
-		shell.cmd_list = NULL;
 		if (strcmp(argv[shell.start], ";") == 0)
 		{
 			++shell.start;
 			continue ;
 		}
 		get_cmd_list(&shell);
-		//print(shell.cmd_list);
 		if (strcmp(shell.cmd_list->cmd[0], "cd") == 0)
 			execute_cd(shell.cmd_list->cmd);
 		else
 			execute_other(&shell);
 		free_all_node(shell.cmd_list);
-		/*while (1)
-		{	
-			pid = waitpid(-1, &status, 0);
-			if (pid == -1)
-				break ;
-		}*/
+		shell.cmd_list = NULL;
 	}
-	//system("leaks microshell");
 	return (0);
 }
