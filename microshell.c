@@ -71,7 +71,6 @@ void	get_cmd_list(t_shell *shell)
 			exit_fatal();
 		tmp->cmd = NULL;
 		tmp->next = NULL;
-		tmp->is_piped = 0;
 		tmp->type = -1;
 		cmd_size = 0;
 		while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))
@@ -134,7 +133,6 @@ void	print(t_node *list)
 void	exit_cd_arg(void)
 {
 	write(STDERR_FILENO, ERROR_CD_ARG, ft_strlen(ERROR_CD_ARG));
-	exit (1);
 }
 
 void	exit_cd_path(char *path_to_change)
@@ -158,7 +156,10 @@ void	execute_cd(char **arg)
 	while (arg[i])
 		++i;
 	if (i != 2)
+	{
 		exit_cd_arg();
+		return ;
+	}
 	if (chdir(arg[1]) == -1)
 		exit_cd_path(arg[1]);
 }
@@ -209,7 +210,6 @@ void	execute_other(t_shell *shell)
 			}
 			if (execve(cmd[0], cmd, shell->envp) == -1)
 				exit_exec(cmd[0]);
-			exit(0);
 		}
 		else
 			exit_fatal();

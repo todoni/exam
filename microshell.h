@@ -24,14 +24,12 @@ typedef struct s_shell
 	int		pipe_fd[2];	
 	int		cp_stdout;
 	int		start;
-	pid_t	pid;
 }	t_shell;
 
 struct s_node
 {
 	int		type;
 	char	**cmd;
-	int		is_piped;
 	t_node	*next;
 };
 
