@@ -22,6 +22,7 @@ typedef struct s_shell
 	char	**envp;
 	t_node	*cmd_list;
 	int		pipe_fd[2];	
+	int		cp_stdout;
 	int		start;
 	pid_t	pid;
 }	t_shell;

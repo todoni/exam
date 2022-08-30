@@ -169,46 +169,50 @@ void	execute_other(t_shell *shell)
 	pid_t	pid;
 	int		status;
 	t_node	*cur;
+	int		fd[2];
 
 	cur = shell->cmd_list;
 	while (cur)
 	{
-		if (pipe(shell->pipe_fd) == -1)
+		if (pipe(fd) == -1)
 			exit_fatal();
 		cmd = cur->cmd;
-		if (cur->type == T_PIPE)
-		{	
-			pid = fork();
-			if (pid > 0)
+		pid = fork();
+		if (pid > 0)
+		{
+			if (cur->type != T_SEMI && cur->type != T_END)
 			{
-				if (close(shell->pipe_fd[WRITE]) == -1)
+				if (close(fd[WRITE]) == -1)
 					exit_fatal();
-				if (dup2(shell->pipe_fd[READ], STDIN_FILENO) == -1)
+				if (dup2(fd[READ], STDIN_FILENO) == -1)
 					exit_fatal();
-				if (close(shell->pipe_fd[READ]) == -1)
-					exit_fatal();
-				waitpid(pid, &status, 0);
+				if (close(fd[READ]) == -1)
+					exit_fatal();	
 			}
-			else if (pid == 0)
+			waitpid(pid, &status, 0);
+		}
+		else if (pid == 0)
+		{
+			if (cur->type != T_SEMI && cur->type != T_END)
 			{
-				if (close(shell->pipe_fd[READ]) == -1)
+				if (close(fd[READ]) == -1)
 					exit_fatal();
-				if (dup2(shell->pipe_fd[WRITE], STDOUT_FILENO) == -1)
+				if (dup2(fd[WRITE], STDOUT_FILENO) == -1)
 					exit_fatal();
-				if (close(shell->pipe_fd[WRITE]) == -1)
+				if (close(fd[WRITE]) == -1)
 					exit_fatal();
-				if (execve(cmd[0], cmd, shell->envp) == -1)
-					exit_exec(cmd[0]);
-				exit(0);
 			}
 			else
-				exit_fatal();
-		}
-		else
-		{
+			{
+				if (dup2(shell->cp_stdout, STDOUT_FILENO) == -1)
+					exit_fatal();
+			}
 			if (execve(cmd[0], cmd, shell->envp) == -1)
 				exit_exec(cmd[0]);
+			exit(0);
 		}
+		else
+			exit_fatal();
 		cur = cur->next;
 	}
 }
@@ -223,6 +227,7 @@ int	main(int argc, char **argv, char **envp)
 	shell.envp = envp;
 	shell.start = 1;
 	shell.cmd_list = NULL;
+	shell.cp_stdout = dup(STDOUT_FILENO);
 	if (argc < 2)
 		exit_fatal();
 	while(argv[shell.start])
@@ -239,6 +244,12 @@ int	main(int argc, char **argv, char **envp)
 			execute_cd(shell.cmd_list->cmd);
 		else
 			execute_other(&shell);
+		/*while (1)
+		{	
+			pid = waitpid(-1, &status, 0);
+			if (pid == -1)
+				break ;
+		}*/
 	}
 	return (0);
 }
