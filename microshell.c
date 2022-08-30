@@ -195,7 +195,8 @@ void	execute_other(t_shell *shell)
 				if (close(fd[READ]) == -1)
 					exit_fatal();	
 			}
-			waitpid(pid, &status, 0);
+			if (waitpid(pid, &status, 0) == -1)
+				exit_fatal();
 		}
 		else if (pid == 0)
 		{
