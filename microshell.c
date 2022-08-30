@@ -219,6 +219,33 @@ void	execute_other(t_shell *shell)
 	}
 }
 
+void	free_array(char **array)
+{
+	int i = 0;
+
+	while (array[i])
+	{
+		free(array[i]);
+		++i;
+	}
+	free(array);
+}
+
+void	free_all_node(t_node *list)
+{
+	t_node *temp;
+	t_node *cur;
+
+	cur = list;
+	while (cur)
+	{
+		temp = cur;
+		free_array(cur->cmd);
+		free(temp);
+		cur = cur->next;
+	}
+}
+
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
@@ -246,6 +273,7 @@ int	main(int argc, char **argv, char **envp)
 			execute_cd(shell.cmd_list->cmd);
 		else
 			execute_other(&shell);
+		free_all_node(shell.cmd_list);
 		/*while (1)
 		{	
 			pid = waitpid(-1, &status, 0);
@@ -253,5 +281,6 @@ int	main(int argc, char **argv, char **envp)
 				break ;
 		}*/
 	}
+	system("leaks microshell");
 	return (0);
 }
