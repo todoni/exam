@@ -147,6 +147,7 @@ void	exit_exec(char *executable_that_failed)
 	write(STDERR_FILENO, ERROR_EXEC, ft_strlen(ERROR_EXEC));
 	write(STDERR_FILENO, executable_that_failed, ft_strlen(executable_that_failed));
 	write(STDERR_FILENO, "\n", 1);
+	exit(EXIT_FAILURE);
 }
 
 void	execute_cd(char **arg)
