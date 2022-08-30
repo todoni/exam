@@ -94,10 +94,10 @@ void	get_cmd_list(t_shell *shell)
 		{
 			if (strcmp(argv[i], "|") == 0)
 				tmp->type = T_PIPE;
-			else if (strcmp(argv[i], ";") == 0)
+			/*else if (strcmp(argv[i], ";") == 0)
 				tmp->type = T_SEMI;
 			else
-				tmp->type = T_CMD;
+				tmp->type = T_CMD;*/
 			++i;
 		}
 		else
@@ -181,7 +181,8 @@ void	execute_other(t_shell *shell)
 		pid = fork();
 		if (pid > 0)
 		{
-			if (cur->type != T_SEMI && cur->type != T_END)
+			//if (cur->type != T_SEMI && cur->type != T_END)
+			if (cur->type == T_PIPE)
 			{
 				if (close(fd[WRITE]) == -1)
 					exit_fatal();
@@ -194,7 +195,8 @@ void	execute_other(t_shell *shell)
 		}
 		else if (pid == 0)
 		{
-			if (cur->type != T_SEMI && cur->type != T_END)
+			//if (cur->type != T_SEMI && cur->type != T_END)
+			if (cur->type == T_PIPE)
 			{
 				if (close(fd[READ]) == -1)
 					exit_fatal();
