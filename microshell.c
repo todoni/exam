@@ -176,8 +176,11 @@ void	execute_other(t_shell *shell)
 	cur = shell->cmd_list;
 	while (cur)
 	{
-		if (pipe(fd) == -1)
-			exit_fatal();
+		if (cur->type == T_PIPE)
+		{
+			if (pipe(fd) == -1)
+				exit_fatal();
+		}
 		cmd = cur->cmd;
 		pid = fork();
 		if (pid > 0)
@@ -282,6 +285,6 @@ int	main(int argc, char **argv, char **envp)
 				break ;
 		}*/
 	}
-	system("leaks microshell");
+	//system("leaks microshell");
 	return (0);
 }
